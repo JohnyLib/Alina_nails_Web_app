@@ -50,6 +50,19 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5;
 
+  const [preBooked] = useState(() => {
+    try {
+      const queryParams = new URLSearchParams(window.location.search);
+      const bookedStr = queryParams.get('booked');
+      if (bookedStr) {
+        return JSON.parse(decodeURIComponent(bookedStr));
+      }
+    } catch(e) {
+      console.error('Failed to parse booked slots:', e);
+    }
+    return {};
+  });
+
   const [availableDates] = useState(generateDates());
 
   const [selectedService, setSelectedService] = useState(null);
@@ -296,7 +309,12 @@ export default function App() {
                   return (
                     <div
                       key={item.id}
-                      onClick={() => setSelectedDate(item)}
+                      onClick={() => {
+                        if (selectedDate?.id !== item.id) {
+                          setSelectedDate(item);
+                          setSelectedTime(''); // сброс времени при смене даты
+                        }
+                      }}
                       className={`flex flex-col items-center justify-center min-w-[76px] h-[96px] rounded-[20px] cursor-pointer transition-all duration-300 shrink-0 border bg-white ${
                         isSelected 
                           ? 'border-[#D5BDB0] bg-[#FAF3F0] shadow-[0_4px_15px_rgba(213,189,176,0.3)] scale-[1.05]' 
@@ -322,15 +340,18 @@ export default function App() {
                <label className="text-[13px] font-bold uppercase tracking-[0.1em] text-[#B39385] block mb-4">Свободное время</label>
                <div className="grid grid-cols-2 gap-3 pb-2">
                 {times.map((t) => {
+                  const isBooked = preBooked[selectedDate?.fullString]?.includes(t);
                   const isSelected = selectedTime === t;
                   return (
                      <div 
                        key={t} 
-                       onClick={() => setSelectedTime(t)}
-                       className={`flex items-center justify-center px-6 py-[18px] rounded-[18px] cursor-pointer transition-all duration-300 border bg-white ${
-                         isSelected
-                          ? 'border-[#D5BDB0] text-[#3E3A37] font-bold shadow-[0_4px_15px_rgba(213,189,176,0.3)] bg-[#FDFBF9] scale-[1.02]'
-                          : 'border-[#EDE9E3] font-medium text-[#645F5B] hover:border-[#D5BDB0]/50 hover:bg-[#FDFBF9]'
+                       onClick={() => !isBooked && setSelectedTime(t)}
+                       className={`flex items-center justify-center px-6 py-[18px] rounded-[18px] transition-all duration-300 border ${
+                         isBooked
+                          ? 'border-[#EDE9E3] bg-[#F9F9F9] text-[#C7C2BC] cursor-not-allowed opacity-60 decoration-1 line-through'
+                          : isSelected
+                           ? 'border-[#D5BDB0] text-[#3E3A37] font-bold shadow-[0_4px_15px_rgba(213,189,176,0.3)] bg-[#FDFBF9] scale-[1.02] cursor-pointer'
+                           : 'border-[#EDE9E3] font-medium text-[#645F5B] hover:border-[#D5BDB0]/50 hover:bg-[#FDFBF9] bg-white cursor-pointer'
                        }`}
                      >
                        <span className="text-[17px] tracking-wide">{t}</span>
